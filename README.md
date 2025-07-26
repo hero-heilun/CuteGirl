@@ -1,6 +1,6 @@
 # CuteGirl
 <div align="center">
-<img style="max-width:50%;" src="pic/logo.png" alt="CuteGirl" />
+<img style="max-width:50%;" src="logo.png" alt="CuteGirl" />
 <br>
 </div>
 
