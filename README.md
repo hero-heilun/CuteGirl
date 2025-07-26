@@ -25,15 +25,9 @@ CuteGirl 是一个基于 Python 开发的多源影视资源下载管理工具，
 ## 系统预览
 ![](login.png)
 ![](screenshot1.png)
-
 ![](screenshot2.png)
-
 ![](screenshot3.png)
-
-
 ![](screenshot4.png)
-
-
 ![](screenshot5.png)
 ## Jellyfin预览
 
