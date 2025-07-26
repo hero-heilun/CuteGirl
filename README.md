@@ -22,13 +22,15 @@ CuteGirl 是一个基于 Python 开发的多源影视资源下载管理工具，
 - 🌐 远程控制：提供 HTTP API 接口，支持远程控制下载任务
 - 🔒 文件锁机制：确保同一时间只有一个下载任务运行
 - 🎨 媒体服务器兼容：自动生成 NFO 文件，支持主流媒体服务器
-## 系统预览
+## 系统预览(WEB)
 ![](login.png)
 ![](screenshot1.png)
 ![](screenshot2.png)
 ![](screenshot3.png)
 ![](screenshot4.png)
 ![](screenshot5.png)
+## 系统预览（手机）
+![](IMG_4749.PNG)
 ## Jellyfin预览
 
 ![](screenshot1.png)
