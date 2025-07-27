@@ -36,11 +36,11 @@ CuteGirl 是一个基于 Python 开发的多源影视资源下载管理工具，
 
 ![](screenshot1.png)
 
-# NASSAV Docker 部署指南
+# CuteGirl Docker 部署指南
 
 ## 概述
 
-NASSAV 提供完整的 Docker 容器化部署方案，支持一键部署所有服务。
+CuteGirl 提供完整的 Docker 容器化部署方案，支持一键部署所有服务。
 
 ## 架构
 
@@ -78,7 +78,7 @@ NASSAV 提供完整的 Docker 容器化部署方案，支持一键部署所有�
 ```bash
 # 克隆项目（如果还没有）
 git clone <项目地址>
-cd NASSAV
+cd CuteGirl
 
 # 启动所有服务
 ./docker-start.sh
@@ -140,10 +140,10 @@ cute-girl/
 ## 📦 镜像架构优化
 
 ### 自包含镜像设计
-- **主下载器**: `nassav/downloader` - 完整打包Python代码、依赖工具和默认配置
-- **Go后端**: `nassav/backend` - 独立API服务器
-- **Vue前端**: `nassav/frontend` - 静态文件服务  
-- **MissAV API**: `nassav/missav-api` - 第三方API服务
+- **主下载器**: `CuteGirl/downloader` - 完整打包Python代码、依赖工具和默认配置
+- **Go后端**: `CuteGirl/backend` - 独立API服务器
+- **Vue前端**: `CuteGirl/frontend` - 静态文件服务  
+- **MissAV API**: `CuteGirl/missav-api` - 第三方API服务
 
 ### 优化的挂载策略
 - **数据持久化**: `/data/movie` (视频), `/app/db` (数据库), `/app/logs` (日志)
@@ -189,15 +189,15 @@ QB_PASSWORD=adminpass
 docker-compose -f docker-compose.prod.yml up -d
 
 # 或指定数据目录
-DATA_PATH=/opt/nassav/data docker-compose -f docker-compose.prod.yml up -d
+DATA_PATH=/opt/CuteGirl/data docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ### 2. 持久化数据
 
 ```bash
 # 创建 Docker 卷
-docker volume create nassav_movie_data
-docker volume create nassav_db_data
+docker volume create CuteGirl_movie_data
+docker volume create CuteGirl_db_data
 
 # 修改 docker-compose.prod.yml 中的卷映射
 ```
@@ -255,10 +255,10 @@ docker-compose logs --tail=100 downloader
 
 ```bash
 # 备份数据
-tar -czf nassav-backup-$(date +%Y%m%d).tar.gz data/
+tar -czf CuteGirl-backup-$(date +%Y%m%d).tar.gz data/
 
 # 恢复数据
-tar -xzf nassav-backup-20231201.tar.gz
+tar -xzf CuteGirl-backup-20231201.tar.gz
 
 # 清理未使用的镜像
 docker system prune
@@ -321,7 +321,7 @@ make build-prod
    ```bash
    # 检查容器网络
    docker network ls
-   docker network inspect nassav_nassav-network
+   docker network inspect CuteGirl_CuteGirl-network
    
    # 重建网络
    docker-compose down
@@ -337,8 +337,8 @@ docker-compose exec downloader /bin/bash
 docker-compose exec backend /bin/sh
 
 # 查看容器日志
-docker logs nassav-downloader
-docker logs nassav-backend
+docker logs CuteGirl-downloader
+docker logs CuteGirl-backend
 
 # 实时监控
 watch docker-compose ps
