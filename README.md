@@ -36,6 +36,386 @@ CuteGirl 是一个基于 Python 开发的多源影视资源下载管理工具，
 
 ![](screenshot1.png)
 
+# NASSAV Docker 部署指南
+
+## 概述
+
+NASSAV 提供完整的 Docker 容器化部署方案，支持一键部署所有服务。
+
+## 架构
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │    │   Downloader    │
+│  (Vue.js)       │◄───┤   (Go API)      │◄───┤  (Python)       │
+│  Port: 80       │    │  Port: 31471    │    │                 │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         │              ┌─────────────────┐              │
+         │              │   MissAV API    │              │
+         └──────────────┤  (FastAPI)      │◄─────────────┘
+                        │  Port: 8000     │
+                        └─────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  qBittorrent    │
+                    │  Port: 8080     │
+                    └─────────────────┘
+```
+
+## 快速开始
+
+### 1. 系统要求
+
+- Docker >= 20.10
+- Docker Compose >= 2.0
+- 至少 4GB 可用内存
+- 至少 10GB 可用磁盘空间
+
+### 2. 一键部署
+
+```bash
+# 克隆项目（如果还没有）
+git clone <项目地址>
+cd NASSAV
+
+# 启动所有服务
+./docker-start.sh
+```
+
+### 3. 手动部署
+
+```bash
+# 创建数据目录
+mkdir -p data/{movie,db,qbittorrent/config} logs
+
+# 启动服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+```
+
+## 服务访问
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| 前端界面 | http://localhost | 主要界面 |
+| 后端API | http://localhost:31471 | REST API |
+| MissAV API | http://localhost:8000 | 第三方 API |
+| API 文档 | http://localhost:8000/docs | FastAPI 文档 |
+| qBittorrent | http://localhost:8080 | 种子管理 |
+
+### 默认账户
+
+- **qBittorrent**: admin / adminpass
+
+## 目录结构
+
+```
+cute-girl/
+├── docker-compose.yml          # 开发环境配置
+├── docker-compose.prod.yml     # 生产环境配置
+├── docker-start.sh             # 启动脚本
+├── docker-build.sh             # 镜像构建脚本
+├── docker-init.sh              # 环境初始化脚本
+├── docker-health-check.sh      # 健康检查脚本
+├── .env.docker                 # 环境变量
+├── data/                       # 数据目录
+│   ├── movie/                  # 视频文件
+│   ├── db/                     # 数据库文件
+│   └── qbittorrent/            # qBittorrent 配置
+├── logs/                       # 日志目录
+├── Dockerfile                  # 主项目镜像 (优化版)
+├── .dockerignore              # Docker忽略文件
+├── backend/Dockerfile          # Go 后端
+├── frontend/Dockerfile         # Vue 前端
+└── MissAV-API/Dockerfile      # MissAV API
+```
+
+## 📦 镜像架构优化
+
+### 自包含镜像设计
+- **主下载器**: `nassav/downloader` - 完整打包Python代码、依赖工具和默认配置
+- **Go后端**: `nassav/backend` - 独立API服务器
+- **Vue前端**: `nassav/frontend` - 静态文件服务  
+- **MissAV API**: `nassav/missav-api` - 第三方API服务
+
+### 优化的挂载策略
+- **数据持久化**: `/data/movie` (视频), `/app/db` (数据库), `/app/logs` (日志)
+- **配置覆盖**: 只挂载 `configs.json` 覆盖镜像内默认配置
+- **代码内置**: 所有源码、工具、依赖都打包到镜像，无需挂载源码目录
+- **减少依赖**: 消除了对宿主机源码的依赖，提高部署一致性
+
+## 配置说明
+
+### 环境变量 (.env.docker)
+
+```bash
+# 数据路径
+DATA_PATH=./data
+MOVIE_PATH=./data/movie
+DB_PATH=./data/db
+
+# 服务端口
+BACKEND_PORT=31471
+FRONTEND_PORT=80
+QBITTORRENT_PORT=8080
+
+# qBittorrent 账户
+QB_USERNAME=admin
+QB_PASSWORD=adminpass
+```
+
+### 数据卷映射
+
+| 容器路径 | 宿主路径 | 说明 |
+|----------|----------|------|
+| `/data/movie` | `./data/movie` | 视频下载目录 |
+| `/app/db` | `./data/db` | 数据库文件 |
+| `/app/logs` | `./logs` | 应用日志 |
+| `/config` | `./data/qbittorrent/config` | qBittorrent 配置 |
+
+## 生产环境部署
+
+### 1. 使用生产配置
+
+```bash
+# 使用生产环境配置
+docker-compose -f docker-compose.prod.yml up -d
+
+# 或指定数据目录
+DATA_PATH=/opt/nassav/data docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 2. 持久化数据
+
+```bash
+# 创建 Docker 卷
+docker volume create nassav_movie_data
+docker volume create nassav_db_data
+
+# 修改 docker-compose.prod.yml 中的卷映射
+```
+
+### 3. SSL/HTTPS 配置
+
+```bash
+# 创建 SSL 证书目录
+mkdir -p nginx/ssl
+
+# 放置证书文件
+cp your-cert.pem nginx/ssl/
+cp your-key.pem nginx/ssl/
+
+# 更新 nginx 配置以启用 HTTPS
+```
+
+## 常用命令
+
+### 服务管理
+
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 停止所有服务
+docker-compose down
+
+# 重启服务
+docker-compose restart
+
+# 查看服务状态
+docker-compose ps
+
+# 查看资源使用
+docker stats
+```
+
+### 日志查看
+
+```bash
+# 查看所有日志
+docker-compose logs -f
+
+# 查看特定服务日志
+docker-compose logs -f downloader
+docker-compose logs -f backend
+docker-compose logs -f frontend
+
+# 查看最近的日志
+docker-compose logs --tail=100 downloader
+```
+
+### 数据管理
+
+```bash
+# 备份数据
+tar -czf nassav-backup-$(date +%Y%m%d).tar.gz data/
+
+# 恢复数据
+tar -xzf nassav-backup-20231201.tar.gz
+
+# 清理未使用的镜像
+docker system prune
+```
+
+### 镜像管理
+
+```bash
+# 构建所有镜像
+./docker-build.sh
+
+# 构建指定版本
+./docker-build.sh v1.0.0
+
+# 构建并推送到Registry
+./docker-build.sh v1.0.0 your-registry.com
+
+# 使用Makefile构建
+make build-prod
+```
+
+## 故障排除
+
+### 常见问题
+
+1. **端口冲突**
+   ```bash
+   # 检查端口占用
+   netstat -tlnp | grep :80
+   netstat -tlnp | grep :31471
+   
+   # 修改端口映射
+   vim docker-compose.yml
+   ```
+
+2. **权限问题**
+   ```bash
+   # 检查数据目录权限
+   ls -la data/
+   
+   # 修复权限
+   sudo chown -R $USER:$USER data/
+   chmod -R 755 data/
+   ```
+
+3. **内存不足**
+   ```bash
+   # 查看内存使用
+   docker stats
+   
+   # 限制容器内存
+   # 在 docker-compose.yml 中添加:
+   deploy:
+     resources:
+       limits:
+         memory: 2G
+   ```
+
+4. **网络问题**
+   ```bash
+   # 检查容器网络
+   docker network ls
+   docker network inspect nassav_nassav-network
+   
+   # 重建网络
+   docker-compose down
+   docker network prune
+   docker-compose up -d
+   ```
+
+### 调试模式
+
+```bash
+# 进入容器调试
+docker-compose exec downloader /bin/bash
+docker-compose exec backend /bin/sh
+
+# 查看容器日志
+docker logs nassav-downloader
+docker logs nassav-backend
+
+# 实时监控
+watch docker-compose ps
+```
+
+## 升级指南
+
+### 1. 备份数据
+
+```bash
+docker-compose down
+tar -czf backup-$(date +%Y%m%d).tar.gz data/ logs/
+```
+
+### 2. 更新代码
+
+```bash
+git pull origin main
+```
+
+### 3. 重建镜像
+
+```bash
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### 4. 验证升级
+
+```bash
+docker-compose ps
+docker-compose logs -f
+```
+
+## 监控
+
+### 健康检查
+
+```bash
+# 检查服务状态
+curl http://localhost/api/videos
+curl http://localhost:31471/api/downloads
+```
+
+### 日志监控
+
+```bash
+# 实时日志监控
+docker-compose logs -f | grep -i error
+```
+
+### 资源监控
+
+```bash
+# 容器资源使用
+docker stats --no-stream
+
+# 磁盘使用
+du -sh data/*
+```
+
+## 性能优化
+
+1. **调整容器资源限制**
+2. **使用 SSD 存储**
+3. **调整并发下载数**
+4. **启用日志轮转**
+
+## 安全建议
+
+1. **更改默认密码**
+2. **使用防火墙限制端口访问**
+3. **启用 HTTPS**
+4. **定期备份数据**
+5. **及时更新镜像**
+
+
 ## 系统要求
 
 - **稳定的网络连接和代理服务**
